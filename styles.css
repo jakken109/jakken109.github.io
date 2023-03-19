@@ -2,3 +2,34 @@ body {
     background-color: black;
     color: white;
 }
+
+.section {
+    width:800px;
+    margin: 50px;
+    padding: 10px;
+    border-style: double;
+    border-color: blue;
+    border-width: 2px;
+}
+
+button {
+    border-color: blue;
+    border-width: 0px;
+    margin-top: 5px;
+    margin-left: 3px;
+}
+
+.textbox {
+    border-color: blue;
+    border-width: 0px;
+    margin-top: 5px;
+    margin-left: 3px;  
+}
+
+.highlightborder:hover {
+    border-width: 2px;
+}
+
+label {
+    width: 125px;
+}
