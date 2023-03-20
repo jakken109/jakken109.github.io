@@ -25,7 +25,7 @@ class WcPanBox extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this.shadowRoot.innerHTML = `
             <style>
-        #viewport { height: 100%; width: 100%; overflow: auto; cursor: grab; }
+        #viewport { height: 100%; width: 100%; overflow: hidden; cursor: grab; }
         #viewport.manipulating { cursor: grabbing; }
             </style>
       <div id="viewport" style="zoom: ${this.#zoom};">
