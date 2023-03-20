@@ -50,3 +50,11 @@ button {
 .navitem {
     padding-right:15px
 }
+
+wc-pan-box { 
+    display: block;
+    block-size: 500px;
+    inline-size: 500px;
+    overflow: auto;
+    border: 1px solid black;
+    }
