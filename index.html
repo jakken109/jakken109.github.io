@@ -7,29 +7,37 @@
         <link rel="stylesheet" href="styles.css">
     </head>
     <body>
+        <div class="navbar">
+            Search
+            <div>       
+                <label class="navitem">Home</label>
+                <a class="navitem" href="map.html">Map</a>
+            </div>
+        </div>
+
         <div class="section">
             <form action="https://eqitems.com/">
                 <input type="hidden" name="Spells" value="Spells">
                 <input type="hidden" name="frmSearch[expansionId]" value="2">
-                    <label>Level</label> 
-                <input class="highlightborder textbox" type="text" name="frmSearch[level]" value="50" autocomplete="off">
+                    <label style="width: 125px">Level</label> 
+                <input class="textbox" type="text" name="frmSearch[level]" value="50" autocomplete="off">
                 <div name="spellbuttons">                    
                     <div name="casterspells">
-                        <label>Caster</label> 
+                        <label style="width: 125px">Caster</label> 
                         <button class="highlightborder" type="submit" name= "frmSearch[classId]" value="32">Enchanter Spells</button>
                         <button class="highlightborder" type="submit" name= "frmSearch[classId]" value="64">Magician Spells</button>
                         <button class="highlightborder" type="submit" name= "frmSearch[classId]" value="256">Necro Spells</button>
                         <button class="highlightborder" type="submit" name= "frmSearch[classId]" value="32768">Wizard Spells</button>
                     </div>
                     <div name="priestspells">
-                        <label>Priest</label> 
+                        <label style="width: 125px">Priest</label> 
                         <button class="highlightborder" type="submit" name= "frmSearch[classId]" value="8">Cleric Spells</button>
                         <button class="highlightborder" type="submit" name= "frmSearch[classId]" value="16">Druid Spells</button>
                         <button class="highlightborder" type="submit" name= "frmSearch[classId]" value="8192">Shaman Spells</button>
                     </div>
 
                     <div name="hybridspells">
-                        <label>Hybrid</label> 
+                        <label style="width: 125px">Hybrid</label> 
                         <button class="highlightborder" type="submit" name= "frmSearch[classId]" value="1">Bard Spells</button>
                         <button class="highlightborder" type="submit" name= "frmSearch[classId]" value="512">Paladin Spells</button>
                         <button class="highlightborder" type="submit" name= "frmSearch[classId]" value="1024">Ranger Spells</button>
@@ -44,7 +52,7 @@
             
             
                 <form name="menusearch" method="post" action="https://www.eqtraders.com/search/search.php">
-                    <label>EQTraders</label> 
+                    <label style="width: 125px">EQTraders</label> 
                     <input name="data[item]" type="text" id="data[item]" autocomplete="off">
                     <input type="hidden" name="menustr" id="menustr" value="035000000000">
                     <input type="hidden" name="min"  id="min" value="0">
@@ -53,7 +61,7 @@
                 </form>
 
                 <form name="menusearch" action="https://everquest.allakhazam.com/search.html">
-                    <label>Allakhazam</label> 
+                    <label style="width: 125px">Allakhazam</label> 
                     <input name="q" type="text" autocomplete="off">
                     <button class="highlightborder" type="submit" name= "frmSearch[classId]" value="Find">Search</button>
                 </form>

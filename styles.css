@@ -13,8 +13,9 @@ body {
 }
 
 button {
+    background-color: lightblue;
     border-color: blue;
-    border-width: 0px;
+    border-width: 2px;
     margin-top: 5px;
     margin-left: 3px;
 }
@@ -27,9 +28,25 @@ button {
 }
 
 .highlightborder:hover {
+    background-color: pink;
+}
+
+
+.map {
+    width: 75vw;
+    height: 75vh;
+    overflow: scroll;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 5vh;
+}
+
+.navbar {
+    border-style: double;
+    border-color: blue;
     border-width: 2px;
 }
 
-label {
-    width: 125px;
+.navitem {
+    padding-right:15px
 }
