@@ -5,8 +5,8 @@ body {
 
 .section {
     width:800px;
-    margin: 50px;
     padding: 10px;
+    margin-bottom: 50px;
     border-style: double;
     border-color: blue;
     border-width: 2px;
@@ -58,4 +58,44 @@ wc-pan-box {
     padding-right:15px
 }
 
+.rowobj {
+    display:flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-left: 50px;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+}
+
+.columnobj {
+    display:flex;
+    flex-direction: column;
+    margin-top: 50px;
+}
+
+
+#grouptable {
+    background-color: #555;
+    color: #ccc;
+    text-align: center;
+    border-width: 2px;
+    border-style: solid;
+    border-color: blue;
+    border-collapse: true;
+}
+
+#grouptable th, td {
+    padding: 4px;
+    border-width: 2px;
+    border-style: solid;
+    border-color: blue;
+
+}
+
+col:nth-child(3) {
+    background:#777;
+  }
+col:nth-child(4) {
+    background:#777;
+  }
 
