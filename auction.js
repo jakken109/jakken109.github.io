@@ -1,10 +1,19 @@
+const MIN_SEARCH_LENGTH = 3;
+
 function main()
+{
+    generate_history();
+}
+
+function generate_history()
 {
     var history = get_history();
     if(!history) return;
     
     for(let i = 0; i < history.length; i++)
     {
+        //Set the history key to generate this table on the right side
+        history[i]["history"] = "historycol"
         get_auctions(history[i]);
     }
 }
@@ -14,10 +23,12 @@ function main()
 function get_auctions(query)
 {
     var server = "yelinak";
+    if(query.text.length < MIN_SEARCH_LENGTH)
+    {
+        generate_error("Search must be minimum 3 characters")
+        return;
+    }
     var searchTerm = encodeURI(query.text);
-
-    //Set defaults to the query if it's not fleshed out
-    var text = query.text;
 
     //Initialize filtertxt string as empty string
     var filtertxt = "";
@@ -33,14 +44,14 @@ function get_auctions(query)
     {
         query["exact"] = "false";
     }
-    
-    url = `https://api.tlp-auctions.com/GetSalesLogs?pageNum=1&pageSize=50&searchTerm=${searchTerm}${filtertxt}&exact=${exact}&serverName=${server}`;
+
+    url = `https://api.tlp-auctions.com/GetSalesLogs?pageNum=1&pageSize=50&searchTerm=${searchTerm}${filtertxt}&exact=${query.exact}&serverName=${server}`;
     /* Code to run a different URL for different API search
     full ? url = `https://api.tlp-auctions.com/GetSalesLogs?pageNum=1&pageSize=50&searchTerm=${searchTerm}&filter=${saleType}&exact=${exact}&serverName=${server}`
         : url = `https://api.tlp-auctions.com/PriceCheck?serverName=${server}&searchText=${searchTerm}`;
     */
 
-
+    //console.log(url);
     //Query the API, and once a response is found, send the result to parse_auctions()
     fetch(url)
     .then(response => {
@@ -141,7 +152,9 @@ function update_page(data, table)
 //Returns a new table with headers and style, inserted at the top of the page
 function new_table(query)
 {
-    let container = document.getElementById("auctiondiv");
+    //If the query doesn't contain a "history" tag set it to search history (left column)
+    if(!query.history) query["history"] = "searchcol";
+    let container = document.getElementById(query.history);
     let table = document.createElement('table');
     table.className = "auctiontable";
     container.insertBefore(table, container.firstChild);
@@ -182,7 +195,6 @@ function search_item(input_query)
     var save = input_query.save.checked ? "true" : "false";
     var filter = input_query.filter.value;
     input_query.search.value = "";
-    
     //Generate a dictionary to pass to the API
     query = {text:text, exact:exact, filter:filter, save:save, filter:filter};
 
@@ -235,6 +247,7 @@ function in_history(query)
 //Add a query to the history in localstorage
 function add_history(query)
 {
+    if(query.history) delete query.history; //Clean query to remove the history marker
     //Get the current history
     var history = get_history();
     //Remove the save key from history so it doesn't get saved
