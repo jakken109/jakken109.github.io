@@ -1,6 +1,13 @@
 function main()
 {
-    var history = getCookie("history").split(",");
+    var history = get_history();
+    if(!history) return;
+    
+    for(let i = 0; i < history.length; i++)
+    {
+        get_auctions(history[i]);
+    }
+    /*
     if(history.length <= 1 && history[0] == "") 
     {
         console.log("Blank Cookie");
@@ -14,30 +21,33 @@ function main()
         console.log("Searching for "+i+history[i])
         get_auctions({text:history[i], exact:"false"})
     }
+    */
     
     //Pull auction data with the parameters
-    //get_auctions({name:"breath of harmony", exact:"true"});
-    //get_auctions({name:"blue diamond", exact:"true"});
     //get_auctions({name:"diamond", exact:"true"});
 }
 
 
-function get_auctions(options)
+//Takes a query {text:string exact:string saleType:string} and returns an API response
+function get_auctions(query)
 {
-    var full = true;
-    //Default server. Change to new server name
     var server = "yelinak";
-    //Encode spaces in the text as %20 to allow it to work in a URL
-    var searchTerm = encodeURI(options.text);
+    var searchTerm = encodeURI(query.text);
 
-    //Default variables for full query if arguments aren't found
-    var saleType = "saleType" in options ? options.saleType : "sell";
-    var exact = "exact" in options ? options.exact : "false";
+    //Set defaults to the query if it's not fleshed out
+    var text = query.text;
+    var saleType = "saleType" in query ? query.saleType : "sell";
+    var exact = "exact" in query ? query.exact : "false";
+
+    //Update query with the new information, if it was missing
+    query = {text:text, exact:exact, saleType:saleType}
     
+    url = `https://api.tlp-auctions.com/GetSalesLogs?pageNum=1&pageSize=50&searchTerm=${searchTerm}&filter=${saleType}&exact=${exact}&serverName=${server}`;
+    /* Code to run a different URL for different API search
     full ? url = `https://api.tlp-auctions.com/GetSalesLogs?pageNum=1&pageSize=50&searchTerm=${searchTerm}&filter=${saleType}&exact=${exact}&serverName=${server}`
         : url = `https://api.tlp-auctions.com/PriceCheck?serverName=${server}&searchText=${searchTerm}`;
+    */
 
-    var query = {text:options.text, exact:exact, saleType:saleType}
 
     //Query the API, and once a response is found, send the result to parse_auctions()
     fetch(url)
@@ -45,18 +55,18 @@ function get_auctions(options)
         return response.json();
     })
     .then(api_data => {
-        return parse_full_log(api_data['items'], query);
+        return parse_full_log(api_data, query);
         //full ? parse_full_log(api_data['items'], query) : price_check(api_data); // This line allows to swap between functions
     });
 }
 
 
 
-//More expensive "full log" data
-function parse_full_log(auctions, query)
+//Takes an API response and a query, and updates the page to reflect the data
+function parse_full_log(api_data, query)
 {
+    var auctions = api_data['items'];
     var display_limit = 7;
-    //If no results are found, return
     if(auctions.length <= 0)
     {
         //TODO put some kind of error message at the top of the page
@@ -66,60 +76,62 @@ function parse_full_log(auctions, query)
 
     var table = new_table(query);
 
+    //Keep track of how many rows have generated, to allow skipping items with no price
     var new_rows = 0;
-    //For every entry, log the name of the item
+
+    //Iterate through the list of auctions
     for(let i = 0; i < auctions.length; i++)
     {
-        
+        //Cache the current item in a variable
         var item = auctions[i];
-        var itemName = item["item"];
-        var seller = item["auctioneer"];
+        //Cache the price data; If there is no price, skip this item
         var plat = item["plat_price"];
         var krono = item["krono_price"];
+        if(parseInt(krono) <= 0 && parseInt(plat) <= 0) continue;
+
+        //Cache the rest of the item data
+        
+        var itemName = item["item"];
+        var seller = item["auctioneer"];
         var timestamp = item["datetime"];
-        if(parseInt(krono) <= 0 && parseInt(plat) <= 0)
-        {
-            //console.log("NO VALUE");
-            continue;
-        }
-        //console.log(`Item: ${itemName}, Price: ${krono} krono ${plat}pp , Seller: ${seller}, Time: ${timestamp}`);
-        newdata = {item: itemName, krono: krono, plat: plat, seller: seller, time: timestamp}
-        update_page(newdata, table);
+        
+        //Compile the data into a dictionary and pass it to update_page to display
+        display_data = {item: itemName, krono: krono, plat: plat, seller: seller, time: timestamp}
+        update_page(display_data, table);
         new_rows++;
         
+        //If we've reached our limit, stop processing items
         if(new_rows > display_limit) break;
     }
 
-    if(new_rows > 0)
-    {
-        add_cookie(query)
-    }
-
+    //If the query generated rows, add this query to the history
+    if(new_rows > 0) add_history(query);
 }
 
-//TODO: Run this to update the page with the new auction data
-function update_page(newdata, table)
+
+//Takes in a dictionary of display data, and a table to insert into
+function update_page(data, table)
 {
-    let price = parse_price(newdata.krono, newdata.plat);
-
+    //Cache column names for code readability
     let row = table.insertRow(-1);
+    let itemname = row.insertCell(0);
+    let price = row.insertCell(1);
+    let seller = row.insertCell(2);
+    let time = row.insertCell(3);
 
-    let name_col = row.insertCell(0);
-    let price_col = row.insertCell(1);
-    let seller_col = row.insertCell(2);
-    let time_col = row.insertCell(3);
-
-    name_col.innerText = newdata.item;
-    price_col.textContent = price;
-    seller_col.textContent = newdata.seller;
-    time_col.textContent = newdata.time; // parse into a better format, or change to "time since"
+    //Insert the data into the row
+    itemname.innerText = data.item;
+    price.textContent = parse_price(data.krono, data.plat);
+    seller.textContent = data.seller;
+    time.textContent = data.time; //TODO parse timestamp into a more legible format.
+    //Add a "Time Since" like "3 hours ago"
 
 }
 
+//Returns a new table with headers and style, inserted at the top of the page
 function new_table(query)
 {
     let container = document.getElementById("auctiondiv");
-
     let table = document.createElement('table');
     table.className = "auctiontable";
     container.insertBefore(table, container.firstChild);
@@ -136,110 +148,104 @@ function new_table(query)
     return table;
 }
 
+//Converts a number of kronos and number of platinum into a readable string
 function parse_price(k, p)
 {
     krono = parseInt(k);
     plat = parseInt(p);
     if(krono>0)
     {
-        if(plat>0)
-        {
-            return `${krono}kr ${plat}pp`;
-        }
-        else
-        {
-            return `${krono}kr`;
-        }
+        if(plat>0) return `${krono}kr ${plat}pp`;
+        else return `${krono}kr`;
     }
+    else return `${plat}pp`;
+}
+
+
+function search_item(input_query)
+{
+    
+    //Get the values of the HTML inputs
+    var text = input_query.search.value;
+    var exact = input_query.exact.checked ? "true" : "false";
+    var saleType = "sell"; //Todo
+    
+    //Generate a dictionary to pass to the API
+    query = {text:text, exact:exact, saleType:saleType};
+
+    console.log(query);
+    //If this query is already in the history, then don't search it
+    //TODO display an error on the top that this is already in the history
+    if (!in_history(query))
+    {
+        get_auctions(query);
+    }
+    
+    input_query.search.value = "";
+    
+}
+
+//Parse and return a list of dictionaries from browser local storage
+function get_history()
+{
+    var data = localStorage.getItem('history');
+    if(!data)
+    {
+        return null;
+    }
+    return JSON.parse(data);
+}
+
+//Check if a query is a match for any queries already in the history
+function in_history(query)
+{
+    var history = get_history();
+
+    //If there is no history, then the query is not in history.
+    if(!history) return false;
+
+    for (let i = 0; i < history.length; i++)
+    {
+        match = true;
+        for (let k in history[i])
+        {
+            //Found something that didn't match. Go to the next dictionary
+            if (query[k] != history[i][k]) 
+            {
+                match = false;
+                break;
+            }
+        }
+        //If match is still true after checking this dictionary, then we found a match
+        if(match) return true;
+    }
+    return false;
+}
+
+
+//Add a query to the history in localstorage
+function add_history(query)
+{
+    //Get the current history
+    var history = get_history();
+    //If there is no history, set history to a list containing a single dictionary
+    if (!history) history = [query];
+
 
     else
     {
-        return `${plat}pp`;
-    }
-}
+        //If there is history, make sure it doesn't already contain our query
+        //If not, then add the query to history
+        if(!in_history(query)) history = history.concat([query]);
 
-
-
-
-//Cheaper price check function
-//Doesn't work for Krono priced items.
-function price_check(data)
-{
-    //auctions['Auctions']
-    //auctions['AveragePrice']
-    //auctions['KronoPrice']
-    //auctions['NoPriceData']
-    var auctions = data['Auctions'];
-
-    //If no results are found, return
-    if(auctions.length <= 0)
-    {
-        console.log("No results found for ");
-        return;
-    } 
-
-    //For every entry, log the name of the item
-    for(let i = 0; i < auctions.length; i++)
-    {
-        var entry = auctions[i];
-        var seller = entry['Auctioneer'];
-        var price = entry["Price"];
-        var timestamp = entry["AuctionDate"];
-
-        //console.log(`Price: ${price}pp, Seller: ${seller}, Time: ${timestamp}`);
-    }
-}
-
-function add_item(query)
-{
-    var text = query.searchbox.value;
-    var exact = query.exactbox.checked ? "true" : "false";
-    get_auctions({text:text, exact:exact})
-    query.searchbox.value = "";
-}
-
-function add_cookie(query)
-{
-    var history = getCookie("history").split(",");
-
-    if (history.includes(query.text) || query.text.length < 3)
-    {
-        return;
-    }
-    //Make a list of the current query
-    var newsearch = [query.text];
-    //Get a list of previous queries
-    
-    var newlist;
-
-    //Make a new list of both combined lists
-    if (history.length <= 1 && history[0] == "")
-    {
-        newlist = newsearch;
+        //If the query is already in history, then don't add anything
+        else return false;
+  
         
     }
-    else
-    {
-        newlist = newsearch.concat(history);
-    }
-    //Set the cookie to that new list
-    document.cookie = "history=" + newlist;
+    //Add the updated history data to the local storage
+    localStorage.setItem('history', JSON.stringify(history))
 }
 
-function getCookie(cname) {
-    let name = cname + "=";
-    let decodedCookie = decodeURIComponent(document.cookie);
-    let ca = decodedCookie.split(';');
-    for(let i = 0; i <ca.length; i++) {
-      let c = ca[i];
-      while (c.charAt(0) == ' ') {
-        c = c.substring(1);
-      }
-      if (c.indexOf(name) == 0) {
-        return c.substring(name.length, c.length);
-      }
-    }
-    return "";
-  }
 
-  main();
+main();
