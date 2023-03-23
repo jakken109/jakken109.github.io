@@ -82,12 +82,12 @@ function update_page(newdata, table)
     let name_col = row.insertCell(0);
     let price_col = row.insertCell(1);
     let seller_col = row.insertCell(2);
-    let time_col = row.insertCell(2);
+    let time_col = row.insertCell(3);
 
     name_col.innerText = newdata.item;
     price_col.textContent = price;
     seller_col.textContent = newdata.seller;
-    time_col.textContent = newdata.time; // add parse time too
+    time_col.textContent = newdata.time; // parse into a better format, or change to "time since"
 
 }
 
