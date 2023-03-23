@@ -111,3 +111,12 @@ wc-pan-box {
     margin-bottom: 25px;
 }
 
+.optionstick {
+    margin-left: 15px;
+}
+
+.optionstick > input {
+    margin-left: 10px;
+    margin-top: 10px;
+}
+

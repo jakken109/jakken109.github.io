@@ -17,10 +17,20 @@
             </div>
         </div>
         <div>
-            <form onsubmit="search_item({search:search, exact:exact}); return false;">
+            <form onsubmit="search_item({search:search, exact:exact, save:save, filter:filter}); return false;">
                 <input class="textbox" type="text" id="search" value="" autocomplete="off">
                 <button type="submit">Add Item</button>
-                <input type="checkbox" id="exact"><label>Exact Match?</label>
+                <div class="optionstick">
+                    <input type="checkbox" id="exact"> <label>Exact Match</label>
+                    <input type="checkbox" id="save"> <label>Save Search</label>
+
+                </div>
+                <div class="optionstick">
+                    <input type="radio" name="filter" value="buy"> <label>Buying</label>
+                    <input type="radio" name="filter" value="sell"> <label>Selling</label>
+                    <input type="radio" name="filter" value="both" checked> <label>Both</label>
+                </div>
+                
             </form>
         </div>
         <div class="rowobj">

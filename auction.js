@@ -7,24 +7,6 @@ function main()
     {
         get_auctions(history[i]);
     }
-    /*
-    if(history.length <= 1 && history[0] == "") 
-    {
-        console.log("Blank Cookie");
-        return;
-    }
-
-    console.log(history.length);
-
-    for(let i = 0; i < history.length; i++)
-    {
-        console.log("Searching for "+i+history[i])
-        get_auctions({text:history[i], exact:"false"})
-    }
-    */
-    
-    //Pull auction data with the parameters
-    //get_auctions({name:"diamond", exact:"true"});
 }
 
 
@@ -36,13 +18,21 @@ function get_auctions(query)
 
     //Set defaults to the query if it's not fleshed out
     var text = query.text;
-    var saleType = "saleType" in query ? query.saleType : "sell";
+    var filter = "filter" in query ? query.filter : "both";
     var exact = "exact" in query ? query.exact : "false";
+    var save = "save" in query ? query.save : "false";
 
-    //Update query with the new information, if it was missing
-    query = {text:text, exact:exact, saleType:saleType}
+    var filtertxt = "";
+    if (filter=="sell")
+    {
+        filtertxt = "&filter=sell"
+    }
+    else if (filter=="buy")
+    {
+        filtertxt = "&filter=buy"
+    }
     
-    url = `https://api.tlp-auctions.com/GetSalesLogs?pageNum=1&pageSize=50&searchTerm=${searchTerm}&filter=${saleType}&exact=${exact}&serverName=${server}`;
+    url = `https://api.tlp-auctions.com/GetSalesLogs?pageNum=1&pageSize=50&searchTerm=${searchTerm}${filtertxt}&exact=${exact}&serverName=${server}`;
     /* Code to run a different URL for different API search
     full ? url = `https://api.tlp-auctions.com/GetSalesLogs?pageNum=1&pageSize=50&searchTerm=${searchTerm}&filter=${saleType}&exact=${exact}&serverName=${server}`
         : url = `https://api.tlp-auctions.com/PriceCheck?serverName=${server}&searchText=${searchTerm}`;
@@ -70,7 +60,7 @@ function parse_full_log(api_data, query)
     if(auctions.length <= 0)
     {
         //TODO put some kind of error message at the top of the page
-        console.log("No auctions found for that query");
+        generate_error("No auctions found for that query");
         return false;
     } 
 
@@ -90,13 +80,13 @@ function parse_full_log(api_data, query)
         if(parseInt(krono) <= 0 && parseInt(plat) <= 0) continue;
 
         //Cache the rest of the item data
-        
+        var filter = item["transaction_type"] ? "Buy" : "Sell";
         var itemName = item["item"];
         var seller = item["auctioneer"];
         var timestamp = item["datetime"];
         
         //Compile the data into a dictionary and pass it to update_page to display
-        display_data = {item: itemName, krono: krono, plat: plat, seller: seller, time: timestamp}
+        display_data = {filter: filter, item: itemName, krono: krono, plat: plat, seller: seller, time: timestamp}
         update_page(display_data, table);
         new_rows++;
         
@@ -105,7 +95,18 @@ function parse_full_log(api_data, query)
     }
 
     //If the query generated rows, add this query to the history
-    if(new_rows > 0) add_history(query);
+    if(new_rows > 0 && query.save) add_history(query);
+    //If the query generated no rows due to skipped priceless items, delete table and throw error
+    else
+    {
+        table.remove();
+        generate_error("All items found had zero price.")
+    }
+}
+
+function generate_error(string)
+{
+    console.log("ERROR: "+string);
 }
 
 
@@ -114,12 +115,15 @@ function update_page(data, table)
 {
     //Cache column names for code readability
     let row = table.insertRow(-1);
-    let itemname = row.insertCell(0);
-    let price = row.insertCell(1);
-    let seller = row.insertCell(2);
-    let time = row.insertCell(3);
+    let filter = row.insertCell(0);
+    let itemname = row.insertCell(1);
+    let price = row.insertCell(2);
+    let seller = row.insertCell(3);
+    let time = row.insertCell(4);
+    
 
     //Insert the data into the row
+    filter.innerText = data.filter;
     itemname.innerText = data.item;
     price.textContent = parse_price(data.krono, data.plat);
     seller.textContent = data.seller;
@@ -136,8 +140,9 @@ function new_table(query)
     table.className = "auctiontable";
     container.insertBefore(table, container.firstChild);
     table.innerHTML = `
-    <tr><th colspan="4">'${query.text}' - Exact: ${query.exact}</th></tr>
+    <tr><th colspan="5">'${query.text}' - Exact: ${query.exact}</th></tr>
     <tr>
+        <th>Type</th>
         <th>Item</th>
         <th>Price</th>
         <th>Seller</th>
@@ -168,20 +173,18 @@ function search_item(input_query)
     //Get the values of the HTML inputs
     var text = input_query.search.value;
     var exact = input_query.exact.checked ? "true" : "false";
-    var saleType = "sell"; //Todo
+    var save = input_query.save.checked ? "true" : "false";
+    var filter = input_query.filter.value;
+    input_query.search.value = "";
     
     //Generate a dictionary to pass to the API
-    query = {text:text, exact:exact, saleType:saleType};
+    query = {text:text, exact:exact, filter:filter, save:save, filter:filter};
 
-    console.log(query);
-    //If this query is already in the history, then don't search it
-    //TODO display an error on the top that this is already in the history
-    if (!in_history(query))
-    {
-        get_auctions(query);
-    }
+    get_auctions(query);
     
-    input_query.search.value = "";
+    
+    
+    
     
 }
 
