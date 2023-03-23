@@ -18,18 +18,20 @@ function get_auctions(query)
 
     //Set defaults to the query if it's not fleshed out
     var text = query.text;
-    var filter = "filter" in query ? query.filter : "both";
-    var exact = "exact" in query ? query.exact : "false";
-    var save = "save" in query ? query.save : "false";
 
+    //Initialize filtertxt string as empty string
     var filtertxt = "";
-    if (filter=="sell")
+    if("filter" in query)
     {
-        filtertxt = "&filter=sell"
+        //If query contains an appropriate filter key, set the filter string appropriately
+        if (query.filter=="sell") filtertxt = "&filter=sell";
+        else if (query.filter=="buy") filtertxt = "&filter=buy";
     }
-    else if (filter=="buy")
+
+    //Set default value for query if none found
+    if(!"exact" in query)
     {
-        filtertxt = "&filter=buy"
+        query["exact"] = "false";
     }
     
     url = `https://api.tlp-auctions.com/GetSalesLogs?pageNum=1&pageSize=50&searchTerm=${searchTerm}${filtertxt}&exact=${exact}&serverName=${server}`;
@@ -94,8 +96,12 @@ function parse_full_log(api_data, query)
         if(new_rows > display_limit) break;
     }
 
-    //If the query generated rows, add this query to the history
-    if(new_rows > 0 && query.save) add_history(query);
+    //If the query generated at least 1 valid row
+    if(new_rows > 0) 
+    {
+        //Save query if it contains "save" key, and "save" value is "true"
+        if ("save" in query && query.save == "true") add_history(query);
+    }
     //If the query generated no rows due to skipped priceless items, delete table and throw error
     else
     {
@@ -231,9 +237,10 @@ function add_history(query)
 {
     //Get the current history
     var history = get_history();
+    //Remove the save key from history so it doesn't get saved
+    delete query.save;
     //If there is no history, set history to a list containing a single dictionary
     if (!history) history = [query];
-
 
     else
     {
