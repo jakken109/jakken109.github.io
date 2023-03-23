@@ -92,10 +92,22 @@ wc-pan-box {
 
 }
 
-col:nth-child(3) {
+#levelCol > col:nth-child(3) {
     background:#777;
   }
-col:nth-child(4) {
+#levelCol > col:nth-child(4) {
     background:#777;
   }
+
+
+.auctiontable {
+    background-color: #555;
+    color: #ccc;
+    text-align: center;
+    border-width: 2px;
+    border-style: solid;
+    border-color: blue;
+    border-collapse: true;
+    margin-bottom: 25px;
+}
 
