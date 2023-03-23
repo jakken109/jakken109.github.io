@@ -11,15 +11,19 @@
         <div class="navbar">
             Search
             <div>       
-                
                 <a class="navitem" href="index.html">Home</a>
                 <a class="navitem" href="map.html">Map</a>
                 <label class="navitem">Auctions</label>
             </div>
         </div>
-
+        <div>
+            <form onsubmit="add_item({searchbox:searchbox, exactbox:exactbox}); return false;">
+                <input class="textbox" type="text" id="searchbox" value="" autocomplete="off">
+                <button type="submit">Add Item</button>
+                <input type="checkbox" id="exactbox"><label>Exact Match?</label>
+            </form>
+        </div>
         <div class="rowobj">
-
             <div class="columnobj" id="auctiondiv">
                 
             </div>
