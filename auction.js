@@ -1,5 +1,7 @@
 const MIN_SEARCH_LENGTH = 3;
 
+var historyElements = [];
+
 function main()
 {
     generate_history();
@@ -13,7 +15,7 @@ function generate_history()
     for(let i = 0; i < history.length; i++)
     {
         //Set the history key to generate this table on the right side
-        history[i]["history"] = "historycol"
+        history[i]["history"] = "true"
         get_auctions(history[i]);
     }
 }
@@ -68,6 +70,21 @@ function get_auctions(query)
 //Takes an API response and a query, and updates the page to reflect the data
 function parse_full_log(api_data, query)
 {
+    //If this query is marked to be saved
+    if("save" in query && query.save == "true")
+    {
+        //if this query is not being requested by get_history (ie it is a new search)
+        if(!("history" in query && query.history == "true"))
+        {
+            //Check if it is already in the history, and error if it is.
+            if(in_history(query))
+            {
+                generate_error("This query is already in your saved queries");
+                return false;
+            }
+        }
+    }
+
     var auctions = api_data['items'];
     var display_limit = 7;
     if(auctions.length <= 0)
@@ -111,7 +128,10 @@ function parse_full_log(api_data, query)
     if(new_rows > 0) 
     {
         //Save query if it contains "save" key, and "save" value is "true"
-        if ("save" in query && query.save == "true") add_history(query);
+        if ("save" in query && query.save == "true") 
+        {
+            add_history(query);
+        }
     }
     //If the query generated no rows due to skipped priceless items, delete table and throw error
     else
@@ -152,9 +172,18 @@ function update_page(data, table)
 //Returns a new table with headers and style, inserted at the top of the page
 function new_table(query)
 {
-    //If the query doesn't contain a "history" tag set it to search history (left column)
-    if(!query.history) query["history"] = "searchcol";
-    let container = document.getElementById(query.history);
+    //If query isn't flagged as "history" or "save"
+    //display query in left column
+    column = "";
+
+    //If query is marked with history or save, display it in the right column
+    if("history" in query && query.history == "true") column = "historycol";
+    else if("save" in query && query.save == "true") column = "historycol";
+    //otherwise display in the left column
+    else column = "searchcol";
+
+
+    let container = document.getElementById(column);
     let table = document.createElement('table');
     table.className = "auctiontable";
     container.insertBefore(table, container.firstChild);
@@ -230,6 +259,8 @@ function in_history(query)
         match = true;
         for (let k in history[i])
         {
+            //Skip the "history" and "save" tags
+            if(k == "history" || k == "save") continue;
             //Found something that didn't match. Go to the next dictionary
             if (query[k] != history[i][k]) 
             {
@@ -255,17 +286,9 @@ function add_history(query)
     //If there is no history, set history to a list containing a single dictionary
     if (!history) history = [query];
 
-    else
-    {
-        //If there is history, make sure it doesn't already contain our query
-        //If not, then add the query to history
-        if(!in_history(query)) history = history.concat([query]);
+    //Add query to history (Should already be checked for duplicates)
+    else history = history.concat([query]);
 
-        //If the query is already in history, then don't add anything
-        else return false;
-  
-        
-    }
     //Add the updated history data to the local storage
     localStorage.setItem('history', JSON.stringify(history))
 }
