@@ -4,15 +4,9 @@ const SERVER = "yelinak";
 var historyElements = [];
 
 
-//Test Commit 2
-//Test comit 3
-//Test commit 4
-//test
-
 function main()
 {
     generate_history();
-
 }
 
 function generate_history()
