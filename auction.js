@@ -3,7 +3,6 @@ const SERVER = "yelinak";
 
 var historyElements = [];
 
-//test
 
 function main()
 {
