@@ -15,11 +15,12 @@ function main()
 
 function generate_history()
 {
-    document.getElementById("search").disabled = true;
+    
     var history = get_history();
     //No history
     if(!history || history[0] == undefined) return;
     //Add history key to all entries to generate in the right column
+    document.getElementById("search").disabled = true;
     for(let i = 0; i < history.length; i++)
     {
         history[i]["history"] = "true"
