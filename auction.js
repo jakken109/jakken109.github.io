@@ -8,7 +8,6 @@ var historyElements = [];
 function main()
 {
     generate_history();
-
 }
 
 function generate_history()
