@@ -3,10 +3,6 @@ const SERVER = "yelinak";
 
 var historyElements = [];
 
-
-//Test Commit 2
-//Test comit 3
-//Test commit 4
 //test
 
 function main()
@@ -89,7 +85,7 @@ async function get_auctions(querylist)
         requests.push(fetch(url));
         metadata.push({query:query, table:dummyTable});
     }
-    
+
     //wait for all the promises to resolve, then map the results to json
     let promises = await Promise.all(requests);
     let result = {promises:promises, metadata:metadata};
