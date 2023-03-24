@@ -28,7 +28,18 @@ function generate_history()
 
 
     //call get_auctions on history, then call process_json when it completes
-    get_auctions(history, process_json);
+    let metadata;
+    get_auctions(history)
+    .then(responses =>
+        {
+            metadata = responses.metadata;
+            return Promise.all(responses.promises.map(r => r.json()));
+        }
+        
+        )
+    .then(jsonlist => {
+        process_json({jsonlist:jsonlist, metadata:metadata});
+    });
 
 }
 
@@ -59,7 +70,7 @@ function create_url(query)
 
 /**Input a list of queries, and asynchronously return a dictionary containing a list of JSON objects, and a matching
  * list of metadata objects */
-async function get_auctions(querylist, onfinish)
+async function get_auctions(querylist)
 {
     //Create an empty list of promises
     let requests = [];
@@ -78,21 +89,18 @@ async function get_auctions(querylist, onfinish)
     }
 
     //wait for all the promises to resolve, then map the results to json
-    Promise.all(requests)
-    .then(responses => 
-    Promise.all(responses.map(r => r.json())) 
-    )
-    .then(jsonlist => {
-        //process_json({jsonlist:jsonlist, metadata:metadata});
-        let test = {jsonlist:jsonlist, metadata:metadata};
-        onfinish(test);
-    });
+    let promises = await Promise.all(requests);
+    let result = {promises:promises, metadata:metadata};
+    return result;
+
+
     
     
 }
 
 /** Input a dictionary containing a list of JSON objects, and a matching list of metadata.
  *  Process the data and update the appropriate HTML objects
+ * {jsonlist:jsonlist, metadata:metadata}
  */
 function process_json(auctions)
 {
