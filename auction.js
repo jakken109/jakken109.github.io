@@ -1,68 +1,110 @@
 const MIN_SEARCH_LENGTH = 3;
+const SERVER = "yelinak";
 
 var historyElements = [];
+
+
+
+
 
 function main()
 {
     generate_history();
+
 }
 
 function generate_history()
 {
+    document.getElementById("search").disabled = true;
     var history = get_history();
-    if(!history) return;
-    
+    //No history
+    if(!history || history[0] == undefined) return;
+    //Add history key to all entries to generate in the right column
     for(let i = 0; i < history.length; i++)
     {
-        //Set the history key to generate this table on the right side
         history[i]["history"] = "true"
-        get_auctions(history[i]);
     }
+
+
+    //call get_auctions on history, then call process_json when it completes
+    get_auctions(history, process_json);
+
 }
 
 
-//Takes a query {text:string exact:string saleType:string} and returns an API response
-function get_auctions(query)
+
+/**Generates an API request URL from a query dictionary*/
+function create_url(query)
 {
-    var server = "yelinak";
     if(query.text.length < MIN_SEARCH_LENGTH)
     {
         generate_error("Search must be minimum 3 characters")
-        return;
+        return null;
     }
+
     var searchTerm = encodeURI(query.text);
 
-    //Initialize filtertxt string as empty string
+    if(!"exact" in query) query["exact"] = "false";
+
     var filtertxt = "";
     if("filter" in query)
     {
-        //If query contains an appropriate filter key, set the filter string appropriately
         if (query.filter=="sell") filtertxt = "&filter=sell";
         else if (query.filter=="buy") filtertxt = "&filter=buy";
     }
+    let url = `https://api.tlp-auctions.com/GetSalesLogs?pageNum=1&pageSize=50&searchTerm=${searchTerm}${filtertxt}&exact=${query.exact}&serverName=${SERVER}`
+    return url;
+}
 
-    //Set default value for query if none found
-    if(!"exact" in query)
+/**Input a list of queries, and asynchronously return a dictionary containing a list of JSON objects, and a matching
+ * list of metadata objects */
+async function get_auctions(querylist, onfinish)
+{
+    //Create an empty list of promises
+    let requests = [];
+    let metadata = [];
+    //Iterate over the queries
+    for (let i = 0; i < querylist.length; i++)
     {
-        query["exact"] = "false";
+        query = querylist[i];
+        //Generate a query URL
+        url = create_url(query);
+        if(url == null) continue;
+        dummyTable = create_table(query, true);
+        //create a promise and add it to the list of requests
+        requests.push(fetch(url));
+        metadata.push({query:query, table:dummyTable});
     }
 
-    url = `https://api.tlp-auctions.com/GetSalesLogs?pageNum=1&pageSize=50&searchTerm=${searchTerm}${filtertxt}&exact=${query.exact}&serverName=${server}`;
-    /* Code to run a different URL for different API search
-    full ? url = `https://api.tlp-auctions.com/GetSalesLogs?pageNum=1&pageSize=50&searchTerm=${searchTerm}&filter=${saleType}&exact=${exact}&serverName=${server}`
-        : url = `https://api.tlp-auctions.com/PriceCheck?serverName=${server}&searchText=${searchTerm}`;
-    */
-
-    //console.log(url);
-    //Query the API, and once a response is found, send the result to parse_auctions()
-    fetch(url)
-    .then(response => {
-        return response.json();
-    })
-    .then(api_data => {
-        return parse_full_log(api_data, query);
-        //full ? parse_full_log(api_data['items'], query) : price_check(api_data); // This line allows to swap between functions
+    //wait for all the promises to resolve, then map the results to json
+    Promise.all(requests)
+    .then(responses => 
+    Promise.all(responses.map(r => r.json())) 
+    )
+    .then(jsonlist => {
+        //process_json({jsonlist:jsonlist, metadata:metadata});
+        let test = {jsonlist:jsonlist, metadata:metadata};
+        onfinish(test);
     });
+    
+    
+}
+
+/** Input a dictionary containing a list of JSON objects, and a matching list of metadata.
+ *  Process the data and update the appropriate HTML objects
+ */
+function process_json(auctions)
+{
+    //For each item in the list
+    for (let i = 0; i < auctions.jsonlist.length; i++)
+    {
+        //parse the auction to generate tables
+        parse_full_log(auctions.jsonlist[i], auctions.metadata[i].query);
+        //delete the placeholder table
+        auctions.metadata[i].table.remove();
+    }
+    document.getElementById("search").disabled = false;
+    
 }
 
 
@@ -94,7 +136,7 @@ function parse_full_log(api_data, query)
         return false;
     } 
 
-    var table = new_table(query);
+    var table = create_table(query);
 
     //Keep track of how many rows have generated, to allow skipping items with no price
     var new_rows = 0;
@@ -217,7 +259,7 @@ function update_page(data, table)
 }
 
 //Returns a new table with headers and style, inserted at the top of the page
-function new_table(query)
+function create_table(query, dummy = false)
 {
     //If query isn't flagged as "history" or "save"
     //display query in left column
@@ -229,17 +271,21 @@ function new_table(query)
     //otherwise display in the left column
     else column = "searchcol";
 
-
-
-
+    let closeButton = "";
+    if(column == "historycol" && !dummy)
+    {
+        closeButton = `
+        <button type="button" class="xbutton" onClick="remove_table(this.parentElement)">
+        <svg focusable=false viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g id="Menu / Close_LG"> <path id="Vector" d="M21 21L12 12M12 12L3 3M12 12L21.0001 3M12 12L3 21.0001" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g> </g></svg>
+        </button>
+        `;
+    }
     let container = document.getElementById(column);
     let table = document.createElement('table');
     table.className = "auctiontable";
     container.insertBefore(table, container.firstChild);
     table.innerHTML = `
-    <button type="button" class="xbutton" onClick="remove_table(this.parentElement)">
-    <svg focusable=false viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g id="Menu / Close_LG"> <path id="Vector" d="M21 21L12 12M12 12L3 3M12 12L21.0001 3M12 12L3 21.0001" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g> </g></svg>    </button>
-    </button>
+    ${closeButton}
     <tr><th colspan="5">'${query.text}' - Exact: ${query.exact}</th></tr>
     <tr>
         
@@ -274,7 +320,7 @@ function parse_price(k, p)
 
 function search_item(input_query)
 {
-    
+    document.getElementById("search").disabled = true;
     //Get the values of the HTML inputs
     var text = input_query.search.value;
     var exact = input_query.exact.checked ? "true" : "false";
@@ -282,9 +328,10 @@ function search_item(input_query)
     var filter = input_query.filter.value;
     input_query.search.value = "";
     //Generate a dictionary to pass to the API
-    query = {text:text, exact:exact, filter:filter, save:save, filter:filter};
+    //Format as a 1-item list for parsing purposes
+    query = [{text:text, exact:exact, filter:filter, save:save, filter:filter}];
 
-    get_auctions(query);
+    get_auctions(query, process_json);
     
 }
 
