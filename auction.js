@@ -70,19 +70,19 @@ function get_auctions(query)
 //Takes an API response and a query, and updates the page to reflect the data
 function parse_full_log(api_data, query)
 {
-    //If this query is marked to be saved
-    if("save" in query && query.save == "true")
+    let saving = "save" in query && query.save == "true";
+    let fromhistory = "history" in query && query.history == "true";
+
+    //If this query is marked to be saved and is not from history
+    if(saving && !fromhistory)
     {
-        //if this query is not being requested by get_history (ie it is a new search)
-        if(!("history" in query && query.history == "true"))
-        {
             //Check if it is already in the history, and error if it is.
-            if(in_history(query))
+            index = get_history_index(query)
+            if(index != null)
             {
-                generate_error("This query is already in your saved queries");
+                generate_error("This query is already in your saved queries at index " + index);
                 return false;
             }
-        }
     }
 
     var auctions = api_data['items'];
@@ -116,7 +116,7 @@ function parse_full_log(api_data, query)
         var timestamp = item["datetime"];
         
         //Compile the data into a dictionary and pass it to update_page to display
-        display_data = {filter: filter, item: itemName, krono: krono, plat: plat, seller: seller, time: timestamp}
+        display_data = {filter: filter, item: itemName, krono: krono, plat: plat, seller: seller, time: timestamp};
         update_page(display_data, table);
         new_rows++;
         
@@ -127,11 +127,13 @@ function parse_full_log(api_data, query)
     //If the query generated at least 1 valid row
     if(new_rows > 0) 
     {
-        //Save query if it contains "save" key, and "save" value is "true"
-        if ("save" in query && query.save == "true") 
-        {
-            add_history(query);
-        }
+        //The query generated 1 or more valid rows
+        //If its marked to be saved, add it to history with add-history
+        //If its marked to be saved OR from history, add it to history elements
+        //If query is marked to be saved and not from history, add it to history
+        if(saving && !fromhistory) add_history(query);
+        //If query is marked to be saved OR from history, add it to element list
+        if(saving || fromhistory) insert_history_element({table:table, query:query});
     }
     //If the query generated no rows due to skipped priceless items, delete table and throw error
     else
@@ -140,6 +142,51 @@ function parse_full_log(api_data, query)
         generate_error("All items found had zero price.")
     }
 }
+
+//insert into historyElements list
+//New elements have higher numbers, lower elements have lower numbers.
+//data is in the form of table:table, query:query
+function insert_history_element(data)
+{
+    //Add the element to the front of the list
+    historyElements = [data].concat(historyElements);
+}
+
+function remove_table(obj)
+{
+    //Find and remove the element from history
+    remove_history_element(get_index(obj));
+    //Remove the active object from the page
+    obj.remove();
+}
+
+function remove_history_element(index)
+{
+    //Locate the element in the saved elements table, by index
+    var targetElement = historyElements[index].table;
+    //Cache the 'query' key of that element
+    var targetQuery = historyElements[index].query;
+
+    //Locate the index of the query in the local cache data
+    var history_index = get_history_index(targetQuery);
+
+    //Get the current history dictionary
+    var history = get_history();
+
+    //Remove the object at history_index from the copy of the dictionary
+    history.splice(history_index, 1);
+    //replace the localstorage dictionary with the updated dictionary
+    localStorage.setItem('history', JSON.stringify(history))
+}
+
+function get_index(obj)
+{
+    //The list of children containing this element
+    list = Array.from(obj.parentElement.children);
+    //Return the index of the table in the list
+    return list.indexOf(obj);
+}
+
 
 function generate_error(string)
 {
@@ -183,6 +230,8 @@ function new_table(query)
     else column = "searchcol";
 
 
+
+
     let container = document.getElementById(column);
     let table = document.createElement('table');
     table.className = "auctiontable";
@@ -190,6 +239,7 @@ function new_table(query)
     table.innerHTML = `
     <tr><th colspan="5">'${query.text}' - Exact: ${query.exact}</th></tr>
     <tr>
+        <button type="button" onClick="remove_table(this.parentElement)">Test</button>
         <th>Type</th>
         <th>Item</th>
         <th>Price</th>
@@ -198,8 +248,12 @@ function new_table(query)
     </tr>
     `;
 
+
     return table;
 }
+
+
+
 
 //Converts a number of kronos and number of platinum into a readable string
 function parse_price(k, p)
@@ -229,10 +283,6 @@ function search_item(input_query)
 
     get_auctions(query);
     
-    
-    
-    
-    
 }
 
 //Parse and return a list of dictionaries from browser local storage
@@ -246,33 +296,45 @@ function get_history()
     return JSON.parse(data);
 }
 
-//Check if a query is a match for any queries already in the history
-function in_history(query)
+//Get the index of a particular query. Returns null if not found. Use for deleting specific queries by "query"
+function get_history_index(query)
 {
+    //Cache the history from browser data
     var history = get_history();
 
     //If there is no history, then the query is not in history.
-    if(!history) return false;
+    if(!history) 
+    {
+        return null;
+    }
 
     for (let i = 0; i < history.length; i++)
     {
-        match = true;
+        //Initialize match in the outer loop
+        let match = null;
+
         for (let k in history[i])
         {
             //Skip the "history" and "save" tags
             if(k == "history" || k == "save") continue;
+
+            //set match to be the index of the current dictionary
+            match = i;
             //Found something that didn't match. Go to the next dictionary
             if (query[k] != history[i][k]) 
             {
-                match = false;
+                match = null;
                 break;
             }
         }
-        //If match is still true after checking this dictionary, then we found a match
-        if(match) return true;
+        //If match wasn't reset to null, return the index of the match
+        if(match != null) return match;
     }
-    return false;
+    //No match returned after looping through the entire list
+    return null;
 }
+
+
 
 
 //Add a query to the history in localstorage
