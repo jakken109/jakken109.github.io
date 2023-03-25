@@ -11,45 +11,92 @@ function main()
 
 function generate_history()
 {
+    //Get saved search history, and return if its empty
+    let history = get_history();
+    if(!history || !history[0]) return;
+    //map over history to add a "history:true" key
+    history = history.map(function(val) {
+        val["history"] = "true";
+        return val;
+      });
     
-    var history = get_history();
-    //No history
-    if(!history || history[0] == undefined) return;
-    //Add history key to all entries to generate in the right column
+    //Disable the search bar until we complete generating
     document.getElementById("search").disabled = true;
-    for(let i = 0; i < history.length; i++)
-    {
-        history[i]["history"] = "true"
-    }
 
-
-    //call get_auctions on history, then call process_json when it completes
+    /**call the async function "getauctions", passing the list of historical queries
+     * once the promise is fulfilled, call process_json on the result
+     * */
     let metadata;
-    get_auctions(history)
-    .then(responses =>
-        {
-            metadata = responses.metadata;
-            return Promise.all(responses.promises.map(r => r.json()));
-        }
-        
-        )
-    .then(jsonlist => {
-        process_json({jsonlist:jsonlist, metadata:metadata});
-    });
 
+    get_auctions(history);
 }
 
+function search_item(input)
+{
+    if(input.search.value.length < MIN_SEARCH_LENGTH)
+    {
+        generate_error("Search must be minimum 3 characters")
+        return;
+    }
+    //Disable the search bar until generation is complete
+    document.getElementById("search").disabled = true;
+    //Build a dictionary of values based on the input passed from the page
+    let query = 
+    {
+        text    : input.search.value,
+        exact   : input.exact.checked ? "true" : "false",
+        save    : input.save.checked ? "true" : "false",
+        filter  : input.filter.value
+    }
+    //Clear the search field to prepare for another search
+    input.search.value = "";
+    //Send the query dictionary to get_auctions
+    get_auctions(query);
+    
+}
 
+/**Input a list of queries, and asynchronously return a dictionary containing a list of JSON objects, and a matching
+ * list of metadata objects */
+function get_auctions(query)
+{
+    get_auctions_async(query)
+    .then(responses =>{
+            metadata = responses.metadata;
+            return Promise.all(responses.promises.map(r => r.json()));
+        })
+    .then(jsonlist => {
+        display_results({jsonlist:jsonlist, metadata:metadata});
+    });
+}
+
+async function get_auctions_async(querylist)
+{
+    //Create an empty list of promises and metadata
+    let requests = [];
+    let metadata = [];
+    //Iterate over the queries
+    for (let i = 0; i < querylist.length; i++)
+    {
+        //Get the current query at i, and generate a URL based off the query
+        let query = querylist[i];
+        let url = create_url(query);
+        if(url == null) continue;
+
+        //Generate and display a dummy table, which will display until the promise is fulfilled
+        let dummyTable = create_table(query, true);
+        //create a promise and add it to the list of requests
+        requests.push(fetch(url));
+        metadata.push({query:query, table:dummyTable});
+    }
+
+    //wait for all the promises to resolve, then map the results to json
+    let promises = await Promise.all(requests);
+    return {promises:promises, metadata:metadata};
+}
 
 /**Generates an API request URL from a query dictionary*/
 function create_url(query)
 {
-    if(query.text.length < MIN_SEARCH_LENGTH)
-    {
-        generate_error("Search must be minimum 3 characters")
-        return null;
-    }
-
     var searchTerm = encodeURI(query.text);
 
     if(!"exact" in query) query["exact"] = "false";
@@ -64,58 +111,25 @@ function create_url(query)
     return url;
 }
 
-/**Input a list of queries, and asynchronously return a dictionary containing a list of JSON objects, and a matching
- * list of metadata objects */
-async function get_auctions(querylist)
-{
-    //Create an empty list of promises
-    let requests = [];
-    let metadata = [];
-    //Iterate over the queries
-    for (let i = 0; i < querylist.length; i++)
-    {
-        query = querylist[i];
-        //Generate a query URL
-        url = create_url(query);
-        if(url == null) continue;
-        dummyTable = create_table(query, true);
-        //create a promise and add it to the list of requests
-        requests.push(fetch(url));
-        metadata.push({query:query, table:dummyTable});
-    }
-
-    //wait for all the promises to resolve, then map the results to json
-    let promises = await Promise.all(requests);
-    let result = {promises:promises, metadata:metadata};
-    return result;
-
-
-    
-    
-}
 
 /** Input a dictionary containing a list of JSON objects, and a matching list of metadata.
  *  Process the data and update the appropriate HTML objects
  * {jsonlist:jsonlist, metadata:metadata}
  */
-function process_json(auctions)
+function display_results(auctions)
 {
-    //For each item in the list
     for (let i = 0; i < auctions.jsonlist.length; i++)
     {
-        //parse the auction to generate tables
-        parse_full_log(auctions.jsonlist[i], auctions.metadata[i].query);
-        //delete the placeholder table
+        generate_auction_table(auctions.jsonlist[i], auctions.metadata[i].query);
         auctions.metadata[i].table.remove();
     }
-    document.getElementById("search").disabled = false;
     
+    document.getElementById("search").disabled = false;
 }
 
 
-
 //Takes an API response and a query, and updates the page to reflect the data
-function parse_full_log(api_data, query)
+function generate_auction_table(api_data, query)
 {
     let saving = "save" in query && query.save == "true";
     let fromhistory = "history" in query && query.history == "true";
@@ -141,6 +155,7 @@ function parse_full_log(api_data, query)
         return false;
     } 
 
+    
     var table = create_table(query);
 
     //Keep track of how many rows have generated, to allow skipping items with no price
@@ -164,7 +179,7 @@ function parse_full_log(api_data, query)
         
         //Compile the data into a dictionary and pass it to update_page to display
         display_data = {filter: filter, item: itemName, krono: krono, plat: plat, seller: seller, time: timestamp};
-        update_page(display_data, table);
+        update_row(display_data, table);
         new_rows++;
         
         //If we've reached our limit, stop processing items
@@ -242,7 +257,7 @@ function generate_error(string)
 
 
 //Takes in a dictionary of display data, and a table to insert into
-function update_page(data, table)
+function update_row(data, table)
 {
     //Cache column names for code readability
     let row = table.insertRow(-1);
@@ -277,7 +292,9 @@ function create_table(query, dummy = false)
     else column = "searchcol";
 
     let closeButton = "";
-    if(column == "historycol" && !dummy)
+    let loadingtext = "";
+    if(dummy) loadingtext = `<tr colspan=2><th class="loadquery">Loading...<th><tr></tr>`;
+    else if(column == "historycol")
     {
         closeButton = `
         <button type="button" class="xbutton" onClick="remove_table(this.parentElement)">
@@ -291,7 +308,7 @@ function create_table(query, dummy = false)
     container.insertBefore(table, container.firstChild);
     table.innerHTML = `
     ${closeButton}
-    <tr><th colspan="5">'${query.text}' - Exact: ${query.exact}</th></tr>
+    <tr><th colspan="100">'${query.text}' - Exact: ${query.exact}</th></tr>
     <tr>
         
         <th>Type</th>
@@ -300,13 +317,10 @@ function create_table(query, dummy = false)
         <th>Seller</th>
         <th>Date/Time</th>
     </tr>
+    ${loadingtext}
     `;
-
-
     return table;
 }
-
-
 
 
 //Converts a number of kronos and number of platinum into a readable string
@@ -323,22 +337,7 @@ function parse_price(k, p)
 }
 
 
-function search_item(input_query)
-{
-    document.getElementById("search").disabled = true;
-    //Get the values of the HTML inputs
-    var text = input_query.search.value;
-    var exact = input_query.exact.checked ? "true" : "false";
-    var save = input_query.save.checked ? "true" : "false";
-    var filter = input_query.filter.value;
-    input_query.search.value = "";
-    //Generate a dictionary to pass to the API
-    //Format as a 1-item list for parsing purposes
-    query = [{text:text, exact:exact, filter:filter, save:save, filter:filter}];
 
-    get_auctions(query, process_json);
-    
-}
 
 //Parse and return a list of dictionaries from browser local storage
 function get_history()
