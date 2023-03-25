@@ -1,30 +1,22 @@
 const MIN_SEARCH_LENGTH = 3;
 const SERVER = "yelinak";
 const RESULT_LIMIT = 7;
-
-var historyElements = [];
+HISTORY_ELEMENTS = [];
 
 
 function main()
 {
-    generate_history();
+    //Get query history, tag each query with a "history" key, and search the list of queries
+    search_list(get_history(true));
 }
 
-function generate_history()
-{
-    //Get saved search history, and return if its empty
-    let history = get_history();
-    if(!history || !history[0]) return;
-    //map over history to add a "history:true" key
-    history = history.map(function(val) {
-        val["history"] = "true";
-        return val;
-      });
-    
-    //Disable the search bar until we complete generating
-    document.getElementById("search").disabled = true;
 
-    get_auctions(history);
+/**Takes in a list of queries, and attempts to search all of them at once*/
+function search_list(querylist)
+{
+    if(!querylist || !querylist[0]) return;
+    document.getElementById("search").disabled = true;
+    get_auctions(querylist);
 }
 
 function search_item(input)
@@ -36,6 +28,7 @@ function search_item(input)
     }
     //Disable the search bar until generation is complete
     document.getElementById("search").disabled = true;
+
     //Build a dictionary of values based on the input passed from the page
     let query = 
     {
@@ -116,10 +109,7 @@ function display_results(auctions)
 {
     for (let i = 0; i < auctions.jsonlist.length; i++)
     {
-        //Generate a new table
-        
         generate_auction_table(auctions.jsonlist[i], auctions.metadata[i].query);
-        //Remove the dummy list
         auctions.metadata[i].table.remove();
     }
     
@@ -153,7 +143,7 @@ function generate_auction_table(api_data, query)
         if(saving || fromhistory)
         {
             insert_history_element(table, query); //cache the element so it can be deleted later
-            if(!fromhistory) add_history(query); //Add query to history if this was not an auto-generated query
+            if(!fromhistory) add_to_history(query); //Add query to history if this was not an auto-generated query
         }
         return true;
     }
@@ -265,11 +255,11 @@ function generate_error(string)
 /**Cache a table a corresponding query, in order to track and delete it later*/
 function insert_history_element(table, query)
 {
-    historyElements = [{table, query}].concat(historyElements);
+    HISTORY_ELEMENTS = [{table, query}].concat(HISTORY_ELEMENTS);
 }
 
 /**Takes 2 INTs (krono, platinum) and returns them as a string*/
-function format_price(k, p)
+function format_price(krono, plat)
 {
     if(krono>0)
     {
@@ -281,11 +271,21 @@ function format_price(k, p)
 
 
 /**Returns a JSON object containing the search history from localstorage*/
-function get_history()
+function get_history(addtag)
 {
-    var data = localStorage.getItem('history');
+    let data = localStorage.getItem('history');
     if(!data) return null;
-    return JSON.parse(data);
+    data = JSON.parse(data);
+
+    if(addtag)
+    {
+        data = data.map(function(val) {
+            val["history"] = "true";
+            return val;
+          });
+    }
+
+    return data;
 }
 
 //Get the index of a particular query. Returns null if not found. Use for deleting specific queries by "query"
@@ -353,7 +353,7 @@ function remove_from_history(obj)
     //Index of the object relative to its parent
     let index = get_index(obj)
     //Cache the 'query' key of that element
-    let targetQuery = historyElements[index].query;
+    let targetQuery = HISTORY_ELEMENTS[index].query;
     //Index of the matching query entry
     let history_index = get_history_index(targetQuery);
 
