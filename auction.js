@@ -23,11 +23,9 @@ function search_item(input)
 {
     if(input.search.value.length < MIN_SEARCH_LENGTH)
     {
-        generate_error("Search must be minimum 3 characters")
+        generate_error("ERROR: Search must be minimum 3 characters")
         return;
     }
-    //Disable the search bar until generation is complete
-    document.getElementById("search").disabled = true;
 
     //Build a dictionary of values based on the input passed from the page
     let query = 
@@ -47,6 +45,9 @@ function search_item(input)
  * list of metadata objects */
 function get_auctions(query)
 {
+    //Disable the search bar until generation is complete
+    document.getElementById("search").disabled = true;
+    generate_error("Loading...");
     if(!query.length) query = [query]; //Force query to be a list if it's a single object
     get_auctions_async(query)
     .then(responses =>{
@@ -54,6 +55,8 @@ function get_auctions(query)
             return Promise.all(responses.promises.map(r => r.json()));
         })
     .then(jsonlist => {
+        document.getElementById("search").disabled = false;
+        generate_error(false);
         display_results({jsonlist:jsonlist, metadata:metadata});
     });
 }
@@ -111,12 +114,12 @@ function generate_auction_table(api_data, query)
     //If this query marked to be saved, stop here if it's already in history
     if(saving && !fromhistory && get_history_index(query) != null)
     {
-        generate_error("This query is already in your saved searches");
+        generate_error("ERROR: This query is already in your saved searches");
         return false;
     }
     if(api_data['items'].length <= 0)
     {
-        generate_error("No auctions found for that search");
+        generate_error("ERROR: No auctions found for that search");
         return false;
     } 
 
@@ -135,7 +138,7 @@ function generate_auction_table(api_data, query)
     else
     {
         table.remove();
-        generate_error("All items found had no price data")
+        generate_error("ERROR: All items found had no price data")
         return false;
     }
 
@@ -256,10 +259,15 @@ function get_index(obj)
 /**Generate an error and display it to the user*/
 function generate_error(string)
 {
+    if(!string)
+    {
+        document.getElementById("errortext").parentElement.style.visibility = "hidden";
+        return;
+    }
     errortext = document.getElementById("errortext");
     errortext.parentElement.style.visibility = "visible";
-    errortext.textContent = "ERROR: " + string;
-    console.log("ERROR: "+string);
+    errortext.textContent = string;
+    console.log(string);
 
 }
 
