@@ -32,7 +32,7 @@ function search_item(input)
     //Build a dictionary of values based on the input passed from the page
     let query = 
     {
-        text    : input.search.value,
+        text    : input.search.value.toLowerCase(),
         exact   : input.exact.checked ? "true" : "false",
         save    : input.save.checked ? "true" : "false",
         filter  : input.filter.value
@@ -83,22 +83,7 @@ async function get_auctions_async(querylist)
     return {promises:promises, metadata:metadata};
 }
 
-/**Generates an API request URL from a query dictionary*/
-function create_url(query)
-{
-    var searchTerm = encodeURI(query.text);
 
-    if(!"exact" in query) query["exact"] = "false";
-
-    var filtertxt = "";
-    if("filter" in query)
-    {
-        if (query.filter=="sell") filtertxt = "&filter=sell";
-        else if (query.filter=="buy") filtertxt = "&filter=buy";
-    }
-    let url = `https://api.tlp-auctions.com/GetSalesLogs?pageNum=1&pageSize=50&searchTerm=${searchTerm}${filtertxt}&exact=${query.exact}&serverName=${SERVER}`
-    return url;
-}
 
 
 /** Input a dictionary containing a list of JSON objects, and a matching list of metadata.
@@ -126,7 +111,7 @@ function generate_auction_table(api_data, query)
     //If this query marked to be saved, stop here if it's already in history
     if(saving && !fromhistory && get_history_index(query) != null)
     {
-        generate_error("This query is already in your saved queries at index " + index);
+        generate_error("This query is already in your saved queries");
         return false;
     }
     if(api_data['items'].length <= 0)
@@ -171,11 +156,11 @@ function create_table(query, dummy = false)
 
     let closeButton = "";
     let loadingtext = "";
-    if(dummy) loadingtext = `<tr colspan=2><th class="loadquery">Loading...<th><tr></tr>`;
+    if(dummy) loadingtext = `<tr><th colspan=100 class="loadquery">Loading...</th></tr>`;
     else if(column == "historycol")
     {
         closeButton = `
-        <button type="button" class="xbutton" onClick="remove_from_history(this.parentElement)">
+        <button type="button" class="xbutton" onClick="remove_from_history(this.parentElement.parentElement.parentElement)">
         <svg focusable=false viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g id="Menu / Close_LG"> <path id="Vector" d="M21 21L12 12M12 12L3 3M12 12L21.0001 3M12 12L3 21.0001" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g> </g></svg>
         </button>
         `;
@@ -185,8 +170,9 @@ function create_table(query, dummy = false)
     table.className = "auctiontable";
     container.insertBefore(table, container.firstChild);
     table.innerHTML = `
-    ${closeButton}
-    <tr><th colspan="100">'${query.text}' - Exact: ${query.exact}</th></tr>
+    <tr><td style="border:0">${closeButton}</td><th colspan="100"><label style="position:relative; right:22px; font-size:125%">'${query.text}'</label></th></tr>
+    
+    <tr><th colspan="100"><i><label style="position:relative; right:20px">Filter: ${query.filter}</label><label style="position:relative; left:20px">Exact: ${query.exact == "true" ? "Yes": "No"}</label></i></th></tr>
     <tr>
         
         <th>Type</th>
@@ -235,6 +221,22 @@ function create_rows(auctions, table)
  * 
  */
 
+/**Generates an API request URL from a query dictionary*/
+function create_url(query)
+{
+    var searchTerm = encodeURI(query.text);
+
+    if(!"exact" in query) query["exact"] = "false";
+
+    var filtertxt = "";
+    if("filter" in query)
+    {
+        if (query.filter=="Sell") filtertxt = "&filter=sell";
+        else if (query.filter=="Buy") filtertxt = "&filter=buy";
+    }
+    let url = `https://api.tlp-auctions.com/GetSalesLogs?pageNum=1&pageSize=50&searchTerm=${searchTerm}${filtertxt}&exact=${query.exact}&serverName=${SERVER}`
+    return url;
+}
 
 /**Returns the index of an HTML object within its parent element*/
 function get_index(obj)
@@ -366,6 +368,8 @@ function remove_from_history(obj)
     //delete the calling object
     obj.remove();
 }
+
+
 
 
 main();

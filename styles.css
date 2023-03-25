@@ -24,6 +24,7 @@ body {
     background-color: #ff9999;
     height:35px;
     width:35px;
+    text-align: left;
 }
 
 .textbox {
@@ -69,6 +70,7 @@ wc-pan-box {
     flex-direction: row;
     justify-content: space-between;
     margin-left: 50px;
+    margin-right: 50px;
     align-items: flex-start;
     flex-wrap: nowrap;
 }
@@ -110,6 +112,7 @@ wc-pan-box {
     background-color: #555;
     color: #ccc;
     text-align: center;
+    width:45vw;
     border-width: 2px;
     border-style: solid;
     border-color: blue;
@@ -124,5 +127,12 @@ wc-pan-box {
 .optionstick > input {
     margin-left: 10px;
     margin-top: 10px;
+}
+
+.loadquery {
+    padding: 20px 20px;
+    border-width: 2px;
+    border-style: solid;
+    border-color: blue;
 }
 
