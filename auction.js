@@ -1,5 +1,6 @@
 const MIN_SEARCH_LENGTH = 3;
 const SERVER = "yelinak";
+const RESULT_LIMIT = 7;
 
 var historyElements = [];
 
@@ -23,11 +24,6 @@ function generate_history()
     //Disable the search bar until we complete generating
     document.getElementById("search").disabled = true;
 
-    /**call the async function "getauctions", passing the list of historical queries
-     * once the promise is fulfilled, call process_json on the result
-     * */
-    let metadata;
-
     get_auctions(history);
 }
 
@@ -50,7 +46,6 @@ function search_item(input)
     }
     //Clear the search field to prepare for another search
     input.search.value = "";
-    //Send the query dictionary to get_auctions
     get_auctions(query);
     
 }
@@ -59,6 +54,7 @@ function search_item(input)
  * list of metadata objects */
 function get_auctions(query)
 {
+    if(!query.length) query = [query]; //Force query to be a list if it's a single object
     get_auctions_async(query)
     .then(responses =>{
             metadata = responses.metadata;
@@ -120,7 +116,10 @@ function display_results(auctions)
 {
     for (let i = 0; i < auctions.jsonlist.length; i++)
     {
+        //Generate a new table
+        
         generate_auction_table(auctions.jsonlist[i], auctions.metadata[i].query);
+        //Remove the dummy list
         auctions.metadata[i].table.remove();
     }
     
@@ -145,100 +144,88 @@ function generate_auction_table(api_data, query)
                 return false;
             }
     }
-
-    var auctions = api_data['items'];
-    var display_limit = 7;
-    if(auctions.length <= 0)
+    
+    if(api_data['items'].length <= 0)
     {
         //TODO put some kind of error message at the top of the page
         generate_error("No auctions found for that query");
         return false;
     } 
 
-    
-    var table = create_table(query);
+    let table = create_table(query);
+    let row_count = create_rows(api_data['items'], table);
 
-    //Keep track of how many rows have generated, to allow skipping items with no price
-    var new_rows = 0;
-
-    //Iterate through the list of auctions
-    for(let i = 0; i < auctions.length; i++)
+    if(row_count > 0) 
     {
-        //Cache the current item in a variable
-        var item = auctions[i];
-        //Cache the price data; If there is no price, skip this item
-        var plat = item["plat_price"];
-        var krono = item["krono_price"];
-        if(parseInt(krono) <= 0 && parseInt(plat) <= 0) continue;
-
-        //Cache the rest of the item data
-        var filter = item["transaction_type"] ? "Buy" : "Sell";
-        var itemName = item["item"];
-        var seller = item["auctioneer"];
-        var timestamp = item["datetime"];
-        
-        //Compile the data into a dictionary and pass it to update_page to display
-        display_data = {filter: filter, item: itemName, krono: krono, plat: plat, seller: seller, time: timestamp};
-        update_row(display_data, table);
-        new_rows++;
-        
-        //If we've reached our limit, stop processing items
-        if(new_rows > display_limit) break;
+        if(saving && !fromhistory) add_history(query); //Add query to history if this was not an auto-generated query
+        if(saving || fromhistory) insert_history_element(table, query); //cache the element so it can be deleted later
+        return true;
     }
-
-    //If the query generated at least 1 valid row
-    if(new_rows > 0) 
-    {
-        //The query generated 1 or more valid rows
-        //If its marked to be saved, add it to history with add-history
-        //If its marked to be saved OR from history, add it to history elements
-        //If query is marked to be saved and not from history, add it to history
-        if(saving && !fromhistory) add_history(query);
-        //If query is marked to be saved OR from history, add it to element list
-        if(saving || fromhistory) insert_history_element({table:table, query:query});
-    }
-    //If the query generated no rows due to skipped priceless items, delete table and throw error
     else
     {
         table.remove();
         generate_error("All items found had zero price.")
+        return false;
     }
+
 }
 
-//insert into historyElements list
-//New elements have higher numbers, lower elements have lower numbers.
-//data is in the form of table:table, query:query
-function insert_history_element(data)
+function create_rows(auctions, table)
 {
-    //Add the element to the front of the list
-    historyElements = [data].concat(historyElements);
+        var new_rows = 0;
+
+        for(let i = 0; i < auctions.length; i++)
+        {
+            var item = auctions[i];
+            var plat = parseInt(item["plat_price"]);
+            var krono = parseInt(item["krono_price"]);
+            if((krono + plat) <= 0) continue;
+
+            let row = table.insertRow(-1);
+            //Generate new rows and populate them with the data
+            row.insertCell(0).textContent = item["transaction_type"] ? "Buy" : "Sell";  //Filter type
+            row.insertCell(1).textContent = item["item"];                               //Item name
+            row.insertCell(2).textContent = parse_price(krono, plat);                   //Price in krono and platinum
+            row.insertCell(3).textContent = item["auctioneer"];                         //Seller name
+            row.insertCell(4).textContent = item["datetime"];                           //Timestamp in datetime format
+            //TODO parse timestamp into a more legible format, or add "Time Since: 3 Hours Ago"
+            new_rows++;
+            //If we've reached our limit, stop processing items
+            if(new_rows > RESULT_LIMIT) break;
+        }
+
+        return new_rows
 }
 
+
+function insert_history_element(table, query)
+{
+    historyElements = [{table, query}].concat(historyElements);
+}
+
+//Called by HTML
 function remove_table(obj)
 {
-    //Find and remove the element from history
-    remove_history_element(get_index(obj));
-    //Remove the active object from the page
-    obj.remove();
+    remove_history_element(obj);
 }
 
-function remove_history_element(index)
+function remove_history_element(obj)
 {
-    //Locate the element in the saved elements table, by index
-    var targetElement = historyElements[index].table;
+    //Index of the object relative to its parent
+    let index = get_index(obj)
     //Cache the 'query' key of that element
-    var targetQuery = historyElements[index].query;
-
-    //Locate the index of the query in the local cache data
-    var history_index = get_history_index(targetQuery);
+    let targetQuery = historyElements[index].query;
+    //Index of the matching query entry
+    let history_index = get_history_index(targetQuery);
 
     //Get the current history dictionary
     var history = get_history();
-
     //Remove the object at history_index from the copy of the dictionary
     history.splice(history_index, 1);
-    //replace the localstorage dictionary with the updated dictionary
+    //update the local storage history list
     localStorage.setItem('history', JSON.stringify(history))
+    //delete the calling object
+    obj.remove();
 }
 
 function get_index(obj)
