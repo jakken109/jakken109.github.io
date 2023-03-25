@@ -79,6 +79,7 @@ wc-pan-box {
     display:flex;
     flex-direction: column;
     margin-top: 50px;
+    align-items: center;
 }
 
 
@@ -113,6 +114,7 @@ wc-pan-box {
     color: #ccc;
     text-align: center;
     width:45vw;
+    min-width: 100%;
     border-width: 2px;
     border-style: solid;
     border-color: blue;
@@ -136,3 +138,41 @@ wc-pan-box {
     border-color: blue;
 }
 
+#errorbox {
+    text-align: center;
+    line-height: 250%;
+    font-size: 150%;
+    color:red;
+    border-radius: 1px;
+    border-color: red;
+    border-style: solid;
+    border-collapse: true;
+    padding-left: 1em;
+    padding-right: 1em;
+    padding-top:5px;
+    padding-bottom:auto;
+    width: fit-content;
+    height:3.9em;
+    margin-top:14px;
+    margin-bottom:50px;
+}
+
+#errortext {
+    display: inline-block; 
+    vertical-align: middle; 
+    line-height: normal;
+}
+
+#auctionsearch {    
+    border-radius: 1px;
+    border-color: blue;
+    border-style: solid;
+    padding: 5px 15px;
+    width: fit-content;
+    margin-bottom:33px;
+}
+
+
+.columnheader {
+
+}
