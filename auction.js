@@ -156,7 +156,12 @@ function create_table(query, dummy = false)
 
     let closeButton = "";
     let loadingtext = "";
-    if(dummy) loadingtext = `<tr><th colspan=100 class="loadquery">Loading...</th></tr>`;
+    let rightpx = "22px";
+    if(dummy) 
+    {
+        loadingtext = `<tr><th colspan=100 class="loadquery">Loading...</th></tr>`;
+        rightpx = "54px";
+    }
     else if(column == "historycol")
     {
         closeButton = `
@@ -170,7 +175,7 @@ function create_table(query, dummy = false)
     table.className = "auctiontable";
     container.insertBefore(table, container.firstChild);
     table.innerHTML = `
-    <tr><td style="border:0">${closeButton}</td><th colspan="100"><label style="position:relative; right:22px; font-size:125%">'${query.text}'</label></th></tr>
+    <tr><td style="border:0">${closeButton}</td><th colspan="100"><label style="position:relative; right:${rightpx}; font-size:125%">'${query.text}'</label></th></tr>
     
     <tr><th colspan="100"><i><label style="position:relative; right:20px">Filter: ${query.filter}</label><label style="position:relative; left:20px">Exact: ${query.exact == "true" ? "Yes": "No"}</label></i></th></tr>
     <tr>
