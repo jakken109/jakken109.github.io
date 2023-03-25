@@ -111,12 +111,12 @@ function generate_auction_table(api_data, query)
     //If this query marked to be saved, stop here if it's already in history
     if(saving && !fromhistory && get_history_index(query) != null)
     {
-        generate_error("This query is already in your saved queries");
+        generate_error("This query is already in your saved searches");
         return false;
     }
     if(api_data['items'].length <= 0)
     {
-        generate_error("No auctions found for that query");
+        generate_error("No auctions found for that search");
         return false;
     } 
 
@@ -135,7 +135,7 @@ function generate_auction_table(api_data, query)
     else
     {
         table.remove();
-        generate_error("All items found had zero price.")
+        generate_error("All items found had no price data")
         return false;
     }
 
