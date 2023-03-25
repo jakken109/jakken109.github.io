@@ -251,7 +251,11 @@ function get_index(obj)
 /**Generate an error and display it to the user*/
 function generate_error(string)
 {
+    errortext = document.getElementById("errortext");
+    errortext.parentElement.style.visibility = "visible";
+    errortext.textContent = "ERROR: " + string;
     console.log("ERROR: "+string);
+
 }
 
 /**Cache a table a corresponding query, in order to track and delete it later*/
