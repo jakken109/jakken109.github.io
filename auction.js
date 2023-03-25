@@ -133,21 +133,14 @@ function generate_auction_table(api_data, query)
     let saving = "save" in query && query.save == "true";
     let fromhistory = "history" in query && query.history == "true";
 
-    //If this query is marked to be saved and is not from history
-    if(saving && !fromhistory)
+    //If this query marked to be saved, stop here if it's already in history
+    if(saving && !fromhistory && get_history_index(query) != null)
     {
-            //Check if it is already in the history, and error if it is.
-            index = get_history_index(query)
-            if(index != null)
-            {
-                generate_error("This query is already in your saved queries at index " + index);
-                return false;
-            }
+        generate_error("This query is already in your saved queries at index " + index);
+        return false;
     }
-    
     if(api_data['items'].length <= 0)
     {
-        //TODO put some kind of error message at the top of the page
         generate_error("No auctions found for that query");
         return false;
     } 
@@ -157,8 +150,11 @@ function generate_auction_table(api_data, query)
 
     if(row_count > 0) 
     {
-        if(saving && !fromhistory) add_history(query); //Add query to history if this was not an auto-generated query
-        if(saving || fromhistory) insert_history_element(table, query); //cache the element so it can be deleted later
+        if(saving || fromhistory)
+        {
+            insert_history_element(table, query); //cache the element so it can be deleted later
+            if(!fromhistory) add_history(query); //Add query to history if this was not an auto-generated query
+        }
         return true;
     }
     else
@@ -167,101 +163,6 @@ function generate_auction_table(api_data, query)
         generate_error("All items found had zero price.")
         return false;
     }
-
-}
-
-function create_rows(auctions, table)
-{
-        var new_rows = 0;
-
-        for(let i = 0; i < auctions.length; i++)
-        {
-            var item = auctions[i];
-            var plat = parseInt(item["plat_price"]);
-            var krono = parseInt(item["krono_price"]);
-            if((krono + plat) <= 0) continue;
-
-            let row = table.insertRow(-1);
-            //Generate new rows and populate them with the data
-            row.insertCell(0).textContent = item["transaction_type"] ? "Buy" : "Sell";  //Filter type
-            row.insertCell(1).textContent = item["item"];                               //Item name
-            row.insertCell(2).textContent = parse_price(krono, plat);                   //Price in krono and platinum
-            row.insertCell(3).textContent = item["auctioneer"];                         //Seller name
-            row.insertCell(4).textContent = item["datetime"];                           //Timestamp in datetime format
-            //TODO parse timestamp into a more legible format, or add "Time Since: 3 Hours Ago"
-            new_rows++;
-            //If we've reached our limit, stop processing items
-            if(new_rows > RESULT_LIMIT) break;
-        }
-
-        return new_rows
-}
-
-
-function insert_history_element(table, query)
-{
-    historyElements = [{table, query}].concat(historyElements);
-}
-
-//Called by HTML
-function remove_table(obj)
-{
-    remove_history_element(obj);
-}
-
-function remove_history_element(obj)
-{
-    //Index of the object relative to its parent
-    let index = get_index(obj)
-    //Cache the 'query' key of that element
-    let targetQuery = historyElements[index].query;
-    //Index of the matching query entry
-    let history_index = get_history_index(targetQuery);
-
-    //Get the current history dictionary
-    var history = get_history();
-    //Remove the object at history_index from the copy of the dictionary
-    history.splice(history_index, 1);
-    //update the local storage history list
-    localStorage.setItem('history', JSON.stringify(history))
-    //delete the calling object
-    obj.remove();
-}
-
-function get_index(obj)
-{
-    //The list of children containing this element
-    list = Array.from(obj.parentElement.children);
-    //Return the index of the table in the list
-    return list.indexOf(obj);
-}
-
-
-function generate_error(string)
-{
-    console.log("ERROR: "+string);
-}
-
-
-//Takes in a dictionary of display data, and a table to insert into
-function update_row(data, table)
-{
-    //Cache column names for code readability
-    let row = table.insertRow(-1);
-    let filter = row.insertCell(0);
-    let itemname = row.insertCell(1);
-    let price = row.insertCell(2);
-    let seller = row.insertCell(3);
-    let time = row.insertCell(4);
-    
-
-    //Insert the data into the row
-    filter.innerText = data.filter;
-    itemname.innerText = data.item;
-    price.textContent = parse_price(data.krono, data.plat);
-    seller.textContent = data.seller;
-    time.textContent = data.time; //TODO parse timestamp into a more legible format.
-    //Add a "Time Since" like "3 hours ago"
 
 }
 
@@ -284,7 +185,7 @@ function create_table(query, dummy = false)
     else if(column == "historycol")
     {
         closeButton = `
-        <button type="button" class="xbutton" onClick="remove_table(this.parentElement)">
+        <button type="button" class="xbutton" onClick="remove_from_history(this.parentElement)">
         <svg focusable=false viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g id="Menu / Close_LG"> <path id="Vector" d="M21 21L12 12M12 12L3 3M12 12L21.0001 3M12 12L3 21.0001" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g> </g></svg>
         </button>
         `;
@@ -309,12 +210,67 @@ function create_table(query, dummy = false)
     return table;
 }
 
-
-//Converts a number of kronos and number of platinum into a readable string
-function parse_price(k, p)
+function create_rows(auctions, table)
 {
-    krono = parseInt(k);
-    plat = parseInt(p);
+        var new_rows = 0;
+
+        for(let i = 0; i < auctions.length; i++)
+        {
+            var item = auctions[i];
+            var plat = parseInt(item["plat_price"]);
+            var krono = parseInt(item["krono_price"]);
+            if((krono + plat) <= 0) continue;
+
+            let row = table.insertRow(-1);
+            //Generate new rows and populate them with the data
+            row.insertCell(0).textContent = item["transaction_type"] ? "Buy" : "Sell";  //Filter type
+            row.insertCell(1).textContent = item["item"];                               //Item name
+            row.insertCell(2).textContent = format_price(krono, plat);                   //Price in krono and platinum
+            row.insertCell(3).textContent = item["auctioneer"];                         //Seller name
+            row.insertCell(4).textContent = item["datetime"];                           //Timestamp in datetime format
+            //TODO parse timestamp into a more legible format, or add "Time Since: 3 Hours Ago"
+            new_rows++;
+            //If we've reached our limit, stop processing items
+            if(new_rows > RESULT_LIMIT) break;
+        }
+
+        return new_rows
+}
+
+
+
+/**
+ * 
+ * Helper Functions
+ * 
+ */
+
+
+/**Returns the index of an HTML object within its parent element*/
+function get_index(obj)
+{
+    //The list of children containing this element
+    let list = Array.from(obj.parentElement.children);
+    //Return the index of the table in the list
+    return list.indexOf(obj);
+}
+
+//TODO: Make this add red text at the top of the page, instead of console logging
+/**Generate an error and display it to the user*/
+function generate_error(string)
+{
+    console.log("ERROR: "+string);
+}
+
+/**Cache a table a corresponding query, in order to track and delete it later*/
+function insert_history_element(table, query)
+{
+    historyElements = [{table, query}].concat(historyElements);
+}
+
+/**Takes 2 INTs (krono, platinum) and returns them as a string*/
+function format_price(k, p)
+{
     if(krono>0)
     {
         if(plat>0) return `${krono}kr ${plat}pp`;
@@ -324,16 +280,11 @@ function parse_price(k, p)
 }
 
 
-
-
-//Parse and return a list of dictionaries from browser local storage
+/**Returns a JSON object containing the search history from localstorage*/
 function get_history()
 {
     var data = localStorage.getItem('history');
-    if(!data)
-    {
-        return null;
-    }
+    if(!data) return null;
     return JSON.parse(data);
 }
 
@@ -377,9 +328,8 @@ function get_history_index(query)
 
 
 
-
-//Add a query to the history in localstorage
-function add_history(query)
+/**Takes in a query, and saves it to the localstorage search history*/
+function add_to_history(query)
 {
     if(query.history) delete query.history; //Clean query to remove the history marker
     //Get the current history
@@ -394,6 +344,27 @@ function add_history(query)
 
     //Add the updated history data to the local storage
     localStorage.setItem('history', JSON.stringify(history))
+}
+
+
+/**Takes an HTML object and deletes it from the page and from history */
+function remove_from_history(obj)
+{
+    //Index of the object relative to its parent
+    let index = get_index(obj)
+    //Cache the 'query' key of that element
+    let targetQuery = historyElements[index].query;
+    //Index of the matching query entry
+    let history_index = get_history_index(targetQuery);
+
+    //Get the current history dictionary
+    var history = get_history();
+    //Remove the object at history_index from the copy of the dictionary
+    history.splice(history_index, 1);
+    //update the local storage history list
+    localStorage.setItem('history', JSON.stringify(history))
+    //delete the calling object
+    obj.remove();
 }
 
 
