@@ -201,8 +201,8 @@ function create_rows(auctions, table)
         for(let i = 0; i < auctions.length; i++)
         {
             var item = auctions[i];
-            var plat = parseInt(item["plat_price"]);
-            var krono = parseInt(item["krono_price"]);
+            var plat = parseInt(item["platPrice"]);
+            var krono = parseInt(item["kronoPrice"]);
             if((krono + plat) <= 0) continue;
 
             let row = table.insertRow(-1);
@@ -242,7 +242,7 @@ function create_url(query)
         if (query.filter=="Sell") filtertxt = "&filter=sell";
         else if (query.filter=="Buy") filtertxt = "&filter=buy";
     }
-    let url = `https://api.tlp-auctions.com/GetSalesLogs?pageNum=1&pageSize=50&searchTerm=${searchTerm}${filtertxt}&exact=${query.exact}&serverName=${SERVER}`
+    let url = `https://api.tlp-auctions.com/SalesLog?pageNum=1&pageSize=50&searchTerm=${searchTerm}${filtertxt}&exact=${query.exact}&serverName=${SERVER}`
     return url;
 }
 
