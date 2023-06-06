@@ -207,7 +207,7 @@ function create_rows(auctions, table)
 
             let row = table.insertRow(-1);
             //Generate new rows and populate them with the data
-            row.insertCell(0).textContent = item["transaction_type"] ? "Buy" : "Sell";  //Filter type
+            row.insertCell(0).textContent = item["transactionType"] ? "Buy" : "Sell";  //Filter type
             row.insertCell(1).textContent = item["item"];                               //Item name
             row.insertCell(2).textContent = format_price(krono, plat);                   //Price in krono and platinum
             row.insertCell(3).textContent = item["auctioneer"];                         //Seller name
