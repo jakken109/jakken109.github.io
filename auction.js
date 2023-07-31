@@ -203,6 +203,13 @@ function create_rows(auctions, table)
             var item = auctions[i];
             var plat = parseInt(item["platPrice"]);
             var krono = parseInt(item["kronoPrice"]);
+
+            var date = new Date(item["datetime"]); //Convert the datetime string to a Date object
+            var date_string = date.toLocaleString() + " EDT"; //Convert the date to a string, and add "EDT" to it
+            var new_date = Date.parse(date_string); //Parse the new string as a "seconds" date object
+            var formatted_date = new Date(new_date).toLocaleString('en-US'); //Format the seconds into readable text
+
+
             if((krono + plat) <= 0) continue;
 
             let row = table.insertRow(-1);
@@ -211,7 +218,7 @@ function create_rows(auctions, table)
             row.insertCell(1).textContent = item["item"];                               //Item name
             row.insertCell(2).textContent = format_price(krono, plat);                   //Price in krono and platinum
             row.insertCell(3).textContent = item["auctioneer"];                         //Seller name
-            row.insertCell(4).textContent = item["datetime"];                           //Timestamp in datetime format
+            row.insertCell(4).textContent = formatted_date;                           //Timestamp in datetime format
             //TODO parse timestamp into a more legible format, or add "Time Since: 3 Hours Ago"
             new_rows++;
             //If we've reached our limit, stop processing items
