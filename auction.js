@@ -257,9 +257,10 @@ function create_url(query)
 function get_index(obj)
 {
     //The list of children containing this element
-    let list = Array.from(obj.parentElement.children);
+    let list = Array.from(obj.parentElement.parentElement.children);
+    console.log("length" + list.length);
     //Return the index of the table in the list
-    return list.indexOf(obj);
+    return list.indexOf(obj.parentElement);
 }
 
 //TODO: Make this add red text at the top of the page, instead of console logging
@@ -378,6 +379,7 @@ function remove_from_history(obj)
 {
     //Index of the object relative to its parent
     let index = get_index(obj)
+    console.log(index);
     //Cache the 'query' key of that element
     let targetQuery = HISTORY_ELEMENTS[index].query;
     //Index of the matching query entry
