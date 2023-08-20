@@ -1,0 +1,173 @@
+body {
+    background-color: black;
+    color: white;
+}
+
+.section {
+    width:800px;
+    padding: 10px;
+    margin-bottom: 50px;
+    border-style: double;
+    border-color: blue;
+    border-width: 2px;
+}
+
+.mainbutton {
+    background-color: lightblue;
+    border-color: blue;
+    border-width: 2px;
+    margin-top: 5px;
+    margin-left: 3px;
+}
+
+.xbutton {
+    background-color: #ff9999;
+    height:35px;
+    width:35px;
+    text-align: left;
+}
+
+.textbox {
+    border-color: blue;
+    border-width: 0px;
+    margin-top: 5px;
+    margin-left: 3px;  
+}
+
+.highlightborder:hover {
+    background-color: pink;
+}
+
+
+.map {
+    width: 75vw;
+    height: 75vh;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 5vh;
+}
+
+wc-pan-box { 
+    display: block;
+    block-size: 500px;
+    inline-size: 500px;
+    overflow: auto;
+    border: 1px solid black;
+    }
+
+.navbar {
+    border-style: double;
+    border-color: blue;
+    border-width: 2px;
+}
+
+.navitem {
+    padding-right:15px
+}
+
+.rowobj {
+    display:flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-left: 50px;
+    margin-right: 50px;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+}
+
+.columnobj {
+    display:flex;
+    flex-direction: column;
+    margin-top: 50px;
+    align-items: center;
+}
+
+
+#grouptable {
+    background-color: #555;
+    color: #ccc;
+    text-align: center;
+    border-width: 2px;
+    border-style: solid;
+    border-color: blue;
+    border-collapse: true;
+}
+
+#grouptable th, td {
+    padding: 4px;
+    border-width: 2px;
+    border-style: solid;
+    border-color: blue;
+
+}
+
+#levelCol > col:nth-child(3) {
+    background:#777;
+  }
+#levelCol > col:nth-child(4) {
+    background:#777;
+  }
+
+
+.auctiontable {
+    background-color: #555;
+    color: #ccc;
+    text-align: center;
+    width:45vw;
+    min-width: 100%;
+    border-width: 2px;
+    border-style: solid;
+    border-color: blue;
+    border-collapse: true;
+    margin-bottom: 25px;
+}
+
+.optionstick {
+    margin-left: 15px;
+}
+
+.optionstick > input {
+    margin-left: 10px;
+    margin-top: 10px;
+}
+
+.loadquery {
+    padding: 20px 20px;
+    border-width: 2px;
+    border-style: solid;
+    border-color: blue;
+}
+
+#errorbox {
+    text-align: center;
+    line-height: 250%;
+    font-size: 150%;
+    color:red;
+    border-radius: 1px;
+    border-color: red;
+    border-style: solid;
+    border-collapse: true;
+    padding-left: 1em;
+    padding-right: 1em;
+    padding-top:5px;
+    padding-bottom:auto;
+    width: fit-content;
+    height:3.9em;
+    margin-top:14px;
+    margin-bottom:50px;
+}
+
+#errortext {
+    display: inline-block; 
+    vertical-align: middle; 
+    line-height: normal;
+}
+
+#auctionsearch {    
+    border-radius: 1px;
+    border-color: blue;
+    border-style: solid;
+    padding: 5px 15px;
+    width: fit-content;
+    margin-bottom:33px;
+}
