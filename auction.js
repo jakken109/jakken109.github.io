@@ -1,5 +1,5 @@
 const MIN_SEARCH_LENGTH = 3;
-const SERVER = "oakwynd";
+const SERVER = "yelinak";
 const RESULT_LIMIT = 7;
 HISTORY_ELEMENTS = [];
 
